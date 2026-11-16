@@ -22,7 +22,13 @@
 #include <stdbool.h>
 #include "sqlite3.h"
 
+#ifdef __amigaos__
+/* GFOS: the settings, the saved game and the high scores, in the drawer's
+ * User drawer (made at start, kept by the Installer on an update). */
+#define DB_FILE "PROGDIR:User/data.db"
+#else
 #define DB_FILE ".data.db"
+#endif
 
 typedef struct DbQuery {
 	char *stmt;

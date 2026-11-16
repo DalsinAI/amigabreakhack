@@ -254,8 +254,13 @@ bool initSDL(void)
 	window_icon = IMG_Load_RW(io_load_rwops("Extras/icon.png"), true);
 	SDL_SetWindowIcon(gWindow, window_icon);
 
+#ifdef __amigaos__
+	/* GFOS: whichever renderer GFOpenGPU's SDL 2 has; it needs targets. */
+	gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_TARGETTEXTURE);
+#else
 	gRenderer = SDL_CreateRenderer(gWindow, -1,
 				       SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
+#endif
 	if (gRenderer == NULL)
 	{
 		error("Unable to create renderer: %s", SDL_GetError());
@@ -1474,7 +1479,17 @@ int main(int argc, char *argv[])
 #endif // STEAM_BUILD
 
 	PHYSFS_init(argv[0]);
-#ifndef DEBUG
+#if defined(__amigaos__)
+	/* GFOS: assets/ and data/ lie in the game's drawer as they are (no zip
+	 * to inflate on a 68k); PhysicsFS's base dir is PROGDIR:. */
+	{
+		char path[1024];
+		m_sprintf(path, sizeof(path), "%sassets", PHYSFS_getBaseDir());
+		PHYSFS_mount(path, NULL, 0);
+		m_sprintf(path, sizeof(path), "%sdata", PHYSFS_getBaseDir());
+		PHYSFS_mount(path, NULL, 0);
+	}
+#elif !defined(DEBUG)
 	PHYSFS_mount("assets.pack", NULL, 0);
 	PHYSFS_mount("data.pack", NULL, 0);
 #else
