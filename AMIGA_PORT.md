@@ -65,6 +65,9 @@ What was changed
 - amiga/: the start (stack, $VER, the User drawer), config.h, the Makefile,
   the Installer spec (amicradle scripts/ports/port_installer.py) and the
   GlowIcons (scripts/ports/port_icons.py, from art/breakhack.svg).
+- amiga/physfs/: physfs.library's header and the stub that opens it, from
+  DalsinAI/gfopenphysfs d3a0ad78 (the stove's kit has no PhysicsFS yet);
+  PhysicsFS itself runs in LIBS:physfs.library.
 - package/, tools/ and tests/: the stove build, the GFOpenUp part (with its
   host test) and the archive.
 - Lua 5.3.5 and SQLite 3.22 are upstream's own copies in lib/, built into

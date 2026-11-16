@@ -28,14 +28,14 @@ OPT     ?= -O2 -fomit-frame-pointer -fno-tree-loop-distribute-patterns
 
 SQLITE_DEFS = -DSQLITE_OS_OTHER=1 -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_WAL -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_TEMP_STORE=3 -DSQLITE_MAX_MMAP_SIZE=0 -DSQLITE_DEFAULT_MEMSTATUS=0
 DEFS    = -D__amigaos__ $(SQLITE_DEFS)
-INC     = -Iamiga -Isrc -Ilib/lua-5.3.5/src -Ilib/sqlite3 -Ilib/bh_random/src \
+INC     = -Iamiga/physfs/include -Iamiga -Isrc -Ilib/lua-5.3.5/src -Ilib/sqlite3 -Ilib/bh_random/src \
           -Ilib/checksum/src -I$(KIT)/include/SDL2 -I$(KIT)/include
 CFLAGS  = -noixemul $(OPT) $(CPU) -std=gnu11 -w $(DEFS) $(INC)
 CXXFLAGS = -noixemul $(OPT) $(CPU) -w $(INC)
 LDFLAGS = -noixemul $(CPU)
-# physfs.library through its auto-open stub (GFOpenUp's GFOpenGPU part
-# installs it, with z.library); C++ for bh_random's std::mt19937.
-LIBS    = -L$(KIT)/lib -lSDL2_ttf -lSDL2_mixer -lSDL2_image -lSDL2 -lphysfs_auto -lpthread -latomic -lm
+# physfs.library: amiga/physfs/ (its header and the stub that opens it;
+# the library itself is GFOpenUp's GFOpenGPU part, with z.library). C++ for bh_random's std::mt19937.
+LIBS    = -L$(KIT)/lib -lSDL2_ttf -lSDL2_mixer -lSDL2_image -lSDL2 -lpthread -latomic -lm
 
 BUILD   = build/amigaos
 OBJDIR  = $(BUILD)/obj
@@ -62,7 +62,7 @@ SRC     = src/main.c src/texture.c src/screenresolution.c src/sprite.c  \
           src/animation.c src/trap.c src/artifact.c src/screen.c src/hiscore.c  \
           src/object.c src/gui_util.c src/tooltip.c src/gamecontroller.c  \
           src/effect_util.c \
-          lib/checksum/src/checksum.c amiga/sqlite_vfs_stdio.c amiga/amiga_start.c $(LUA)
+          lib/checksum/src/checksum.c amiga/sqlite_vfs_stdio.c amiga/amiga_start.c amiga/physfs/physfs_auto.c $(LUA)
 OBJS    = $(SRC:%.c=$(OBJDIR)/%.o) $(OBJDIR)/lib/bh_random/src/bh_random.o
 
 all: $(OUT)/$(PROG) package
