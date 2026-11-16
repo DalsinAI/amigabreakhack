@@ -28,7 +28,8 @@ OPT     ?= -O2 -fomit-frame-pointer -fno-tree-loop-distribute-patterns
 
 SQLITE_DEFS = -DSQLITE_OS_OTHER=1 -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_WAL -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_TEMP_STORE=3 -DSQLITE_MAX_MMAP_SIZE=0 -DSQLITE_DEFAULT_MEMSTATUS=0
 DEFS    = -D__amigaos__ $(SQLITE_DEFS)
-INC     = -Iamiga/physfs/include -Iamiga -Isrc -Ilib/lua-5.3.5/src -Ilib/sqlite3 -Ilib/bh_random/src \
+# -iquote src: src/time.h must not stand in for <time.h>.
+INC     = -Iamiga/physfs/include -Iamiga -iquote src -Ilib/lua-5.3.5/src -Ilib/sqlite3 -Ilib/bh_random/src \
           -Ilib/checksum/src -I$(KIT)/include/SDL2 -I$(KIT)/include
 CFLAGS  = -noixemul $(OPT) $(CPU) -std=gnu11 -w $(DEFS) $(INC)
 CXXFLAGS = -noixemul $(OPT) $(CPU) -w $(INC)
