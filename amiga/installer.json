@@ -1,0 +1,14 @@
+{
+  "name": "BreakHack",
+  "version": "4.0.3-gfos1",
+  "drawer": "BreakHack",
+  "program": "BreakHack",
+  "cpu": "68040",
+  "fpu": true,
+  "space": 18000000,
+  "modules": ["SDL2.module", "SDL2_image.module", "SDL2_mixer.module"],
+  "keep": ["User"],
+  "parent": "Work:Games",
+  "badge": "icons/art/breakhack.png",
+  "script": "Install-BreakHack"
+}

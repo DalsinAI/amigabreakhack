@@ -1,0 +1,105 @@
+# BreakHack for GFOS (AmigaOS 3.2 with GFOpenUp), 68040/68060 + FPU, on
+# GFOpenGPU's SDL 2 kit: LIBS:GFOpenGPU/SDL2.module, SDL2_image.module,
+# SDL2_mixer.module and LIBS:physfs.library; SDL_ttf linked in.
+#
+#   make -f amiga/Makefile.amigaos -j4 [STOVE=/path/to/os32-gcc16-open6]
+#
+# STOVE is a GFOpenAmigaGCC 16.2.0-open6 stove: its prefix/ has the
+# compilers, the NDK and GFOpenGPU's kit (prefix/m68k-amigaos). Lua 5.3.5
+# and SQLite 3.22 are upstream's own copies in lib/; SQLite runs on
+# amiga/sqlite_vfs_stdio.c (SQLITE_OS_OTHER: no POSIX locks or pread on
+# libnix), checked on the host by amiga/tests/test_sqlite_vfs.sh. The game
+# data (assets/ and data/) goes in the drawer as it is; the settings, the
+# saved game and the high scores go to PROGDIR:User/data.db.
+#
+# Output: build/amigaos/BreakHack/ (the drawer), its .info and
+# Install-BreakHack beside it.
+
+STOVE   ?= $(HOME)/AmiCradle/stoves/os32-gcc16-open6
+PREFIX  ?= $(STOVE)/prefix
+KIT     ?= $(PREFIX)/m68k-amigaos
+CC      = $(PREFIX)/bin/m68k-amigaos-gcc
+CXX     = $(PREFIX)/bin/m68k-amigaos-g++
+STRIP   = $(PREFIX)/bin/m68k-amigaos-strip
+# SDL and its satellites are hard float: the FPU calling convention must match.
+CPU     ?= -m68040 -m68881
+# -fno-tree-loop-distribute-patterns: GCC 16's loop miscompile.
+OPT     ?= -O2 -fomit-frame-pointer -fno-tree-loop-distribute-patterns
+
+SQLITE_DEFS = -DSQLITE_OS_OTHER=1 -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_WAL -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_TEMP_STORE=3 -DSQLITE_MAX_MMAP_SIZE=0 -DSQLITE_DEFAULT_MEMSTATUS=0
+DEFS    = -D__amigaos__ $(SQLITE_DEFS)
+# -iquote src: src/time.h must not stand in for <time.h>.
+INC     = -Iamiga/physfs/include -Iamiga -iquote src -Ilib/lua-5.3.5/src -Ilib/sqlite3 -Ilib/bh_random/src \
+          -Ilib/checksum/src -I$(KIT)/include/SDL2 -I$(KIT)/include
+CFLAGS  = -noixemul $(OPT) $(CPU) -std=gnu11 -w $(DEFS) $(INC)
+CXXFLAGS = -noixemul $(OPT) $(CPU) -w $(INC)
+LDFLAGS = -noixemul $(CPU)
+# physfs.library: amiga/physfs/ (its header and the stub that opens it;
+# the library itself is GFOpenUp's GFOpenGPU part, with z.library). C++ for bh_random's std::mt19937.
+LIBS    = -L$(KIT)/lib -lSDL2_ttf -lSDL2_mixer -lSDL2_image -lSDL2 -lpthread -latomic -lm
+
+BUILD   = build/amigaos
+OBJDIR  = $(BUILD)/obj
+NAME    = BreakHack
+OUT     = $(BUILD)/$(NAME)
+PROG    = BreakHack
+
+LUA     = $(addprefix lib/lua-5.3.5/src/, lapi.c lauxlib.c lbaselib.c lbitlib.c \
+          lcode.c lcorolib.c lctype.c ldblib.c ldebug.c ldo.c ldump.c lfunc.c \
+          lgc.c linit.c liolib.c llex.c lmathlib.c lmem.c loadlib.c lobject.c \
+          lopcodes.c loslib.c lparser.c lstate.c lstring.c lstrlib.c ltable.c \
+          ltablib.c ltm.c lundump.c lutf8lib.c lvm.c lzio.c)
+SRC     = src/main.c src/texture.c src/screenresolution.c src/sprite.c  \
+          src/sprite_util.c src/util.c src/event.c src/player.c src/save.c  \
+          src/map.c src/map_lua.c src/camera.c src/timer.c src/roommatrix.c  \
+          src/position.c src/monster.c src/stats.c src/actiontext.c  \
+          src/random.c src/time.c src/linkedlist.c src/hashtable.c src/gui.c  \
+          src/item.c src/item_builder.c src/pointer.c src/gui_button.c  \
+          src/particle_engine.c src/particle_emitter.c src/menu.c  \
+          src/collisions.c src/keyboard.c src/input.c src/mixer.c src/io_util.c  \
+          src/physfsrwops.c src/skillbar.c src/texturecache.c src/skill.c  \
+          src/projectile.c src/vector2d.c src/map_room_modifiers.c  \
+          lib/sqlite3/sqlite3.c src/db.c src/settings.c src/actiontextbuilder.c  \
+          src/animation.c src/trap.c src/artifact.c src/screen.c src/hiscore.c  \
+          src/object.c src/gui_util.c src/tooltip.c src/gamecontroller.c  \
+          src/effect_util.c \
+          lib/checksum/src/checksum.c amiga/sqlite_vfs_stdio.c amiga/amiga_start.c amiga/physfs/physfs_auto.c $(LUA)
+OBJS    = $(SRC:%.c=$(OBJDIR)/%.o) $(OBJDIR)/lib/bh_random/src/bh_random.o
+
+all: $(OUT)/$(PROG) package
+
+$(BUILD)/$(PROG).debug: $(OBJS)
+	@mkdir -p $(BUILD)
+	$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+
+$(OUT)/$(PROG): $(BUILD)/$(PROG).debug
+	@mkdir -p $(OUT)
+	$(STRIP) -o $@ $<
+
+package: $(OUT)/$(PROG) AMIGA_PORT.md README.md LICENSE.txt CREDITS.md
+	mkdir -p $(OUT)/User
+	rm -rf $(OUT)/assets $(OUT)/data
+	cp -R assets data $(OUT)/
+	cp AMIGA_PORT.md $(OUT)/ReadMe
+	cp README.md $(OUT)/ReadMe-BreakHack
+	cp CREDITS.md $(OUT)/Credits
+	cp LICENSE.txt $(OUT)/COPYING.txt
+	cp amiga/icons/$(PROG).info amiga/icons/ReadMe.info $(OUT)/
+	for f in ReadMe-BreakHack Credits COPYING.txt; do \
+	    cp amiga/icons/ReadMe.info $(OUT)/$$f.info; done
+	cp amiga/icons/Data.info $(OUT)/User.info
+	cp amiga/icons/$(NAME)-drawer.info $(BUILD)/$(NAME).info
+	cp amiga/Install-$(NAME) amiga/Install-$(NAME).info $(BUILD)/
+
+$(OBJDIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+clean:
+	rm -rf $(BUILD)
+
+.PHONY: all package clean
